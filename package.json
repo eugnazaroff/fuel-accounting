@@ -1,6 +1,6 @@
 {
   "name": "fuel-accounting",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -80,6 +80,7 @@
       "oneClick": true,
       "perMachine": false,
       "allowElevation": true,
+      "include": "electron/installer.nsh",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "portable": {
