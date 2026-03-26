@@ -105,7 +105,7 @@ body {
 .app-version {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--accent);
   letter-spacing: 0.02em;
   user-select: none;
   flex-shrink: 0;
