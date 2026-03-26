@@ -39,6 +39,7 @@
     "wait-on": "^8.0.1"
   },
   "build": {
+    "publish": null,
     "appId": "com.local.fuel-accounting",
     "productName": "FuelAccounting",
     "directories": {
