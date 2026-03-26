@@ -209,6 +209,8 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('fuel:getDataRoot', async () => getDataRoot());
 
+  ipcMain.handle('fuel:getAppVersion', async () => app.getVersion());
+
   ipcMain.handle('fuel:loadVehicles', async () => {
     const root = getDataRoot();
     const file = path.join(root, VEHICLE_LIBRARY_DIR, 'vehicles.json');

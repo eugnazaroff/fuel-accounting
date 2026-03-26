@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('fuelApi', {
+  getAppVersion: () => ipcRenderer.invoke('fuel:getAppVersion'),
   getDataRoot: () => ipcRenderer.invoke('fuel:getDataRoot'),
   loadVehicles: () => ipcRenderer.invoke('fuel:loadVehicles'),
   saveVehicles: (vehicles) => ipcRenderer.invoke('fuel:saveVehicles', vehicles),

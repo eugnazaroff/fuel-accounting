@@ -3,6 +3,7 @@
 declare global {
   interface Window {
     fuelApi: {
+      getAppVersion: () => Promise<string>;
       getDataRoot: () => Promise<string>;
       loadVehicles: () => Promise<import('./types').Vehicle[]>;
       saveVehicles: (vehicles: import('./types').Vehicle[]) => Promise<boolean>;

@@ -1,6 +1,6 @@
 {
   "name": "fuel-accounting",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -14,8 +14,8 @@
     "start": "electron .",
     "lint": "eslint . --ext ts,tsx --max-warnings 0",
     "seed:portable": "node electron/scripts/seed-portable-userdata.cjs",
-    "dist:win": "npm run build && electron-builder --win nsis --x64 && node electron/scripts/copy-userdata-to-release.cjs",
-    "dist:win:portable": "npm run build && electron-builder --win portable --x64 && node electron/scripts/copy-userdata-to-release.cjs",
+    "dist:win": "npm run build && electron-builder --win nsis --x64 --publish never && node electron/scripts/copy-userdata-to-release.cjs",
+    "dist:win:portable": "npm run build && electron-builder --win portable --x64 --publish never && node electron/scripts/copy-userdata-to-release.cjs",
     "publish:updates-gh-pages": "node electron/scripts/copy-release-to-docs-updates.cjs"
   },
   "dependencies": {
@@ -39,7 +39,10 @@
     "wait-on": "^8.0.1"
   },
   "build": {
-    "publish": null,
+    "publish": {
+      "provider": "generic",
+      "url": "https://eugnazaroff.github.io/fuel-accounting/updates/"
+    },
     "appId": "com.local.fuel-accounting",
     "productName": "FuelAccounting",
     "directories": {

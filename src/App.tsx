@@ -22,6 +22,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('day');
   const shellClass = tab === 'stats' || tab === 'compare' ? 'app-shell stats-wide' : 'app-shell';
   const [dataRoot, setDataRoot] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [dateKey, setDateKey] = useState(todayKey);
   const [entries, setEntries] = useState<Record<string, DailyEntry>>({});
@@ -52,6 +53,7 @@ export default function App() {
       return;
     }
     void window.fuelApi.getDataRoot().then(setDataRoot);
+    void window.fuelApi.getAppVersion().then(setAppVersion);
   }, []);
 
   const refreshDevBackupStatus = useCallback(async () => {
@@ -181,6 +183,11 @@ export default function App() {
     <div className={shellClass}>
       <div className="app-top">
         <div className="app-top-left">
+          {appVersion ? (
+            <span className="app-version" title="Версия приложения">
+              v{appVersion}
+            </span>
+          ) : null}
           <div className="tabs">
             <button
               type="button"

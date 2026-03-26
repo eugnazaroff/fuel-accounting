@@ -102,6 +102,15 @@ body {
   gap: 10px;
 }
 
+.app-version {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  user-select: none;
+  flex-shrink: 0;
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;
