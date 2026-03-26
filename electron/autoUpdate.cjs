@@ -1,5 +1,7 @@
 const { app } = require('electron');
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
+const fsPromises = require('node:fs/promises');
+const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { autoUpdater } = require('electron-updater');
@@ -28,7 +30,7 @@ function normalizeBaseUrl(url) {
 function logLine(message) {
   const file = path.join(app.getPath('userData'), 'fuel-updater.log');
   const line = `[${new Date().toISOString()}] ${message}\n`;
-  void fs.appendFile(file, line, 'utf8').catch(() => {
+  void fsPromises.appendFile(file, line, 'utf8').catch(() => {
     /* нет прав / диск */
   });
 }
@@ -44,24 +46,78 @@ function formatErr(err) {
 }
 
 /**
- * Не используем quitAndInstall: он запускает установщик пока процесс Electron ещё жив — файлы
- * остаются заблокированы (NSIS «не удалось закрыть приложение»). Планируем Setup через PowerShell.
+ * Жёстко извлекаем путь к скачанному установщику (helper.file иногда не строка в рантайме).
+ * @returns {string | null}
+ */
+function resolveInstallerPath(helper) {
+  if (!helper) {
+    return null;
+  }
+  const f = helper.file;
+  if (typeof f === 'string' && f.length > 0) {
+    return f;
+  }
+  if (f != null && typeof f === 'object' && typeof f.toString === 'function') {
+    const s = String(f);
+    if (s && s !== '[object Object]' && s.includes(path.sep)) {
+      return s;
+    }
+  }
+  return null;
+}
+
+/**
+ * quitAndInstall стартует NSIS, пока Electron ещё держит файлы. Выходим из приложения,
+ * отдельный cmd ждёт timeout и запускает Setup (без PowerShell — политики / парсинг аргументов).
  * @param {string} installerPath
  */
 function scheduleDelayedNSISInstall(installerPath) {
-  const fileJson = JSON.stringify(installerPath);
-  const ps = `Start-Sleep -Seconds ${INSTALL_DELAY_SEC}; Start-Process -FilePath ${fileJson} -ArgumentList '--updated','--force-run'`;
+  if (!fs.existsSync(installerPath)) {
+    logLine(`scheduleDelayedNSISInstall: файла нет: ${installerPath}`);
+    return false;
+  }
+
+  const quotedExe = `"${installerPath.replace(/"/g, '""')}"`;
+  const batchPath = path.join(os.tmpdir(), `fuel-update-${Date.now()}-${process.pid}.bat`);
+  const batchBody = [
+    '@echo off',
+    `timeout /t ${INSTALL_DELAY_SEC} /nobreak 1>nul 2>nul`,
+    `${quotedExe} --updated --force-run`,
+    '',
+  ].join('\r\n');
+
   try {
+    fs.writeFileSync(batchPath, batchBody, 'utf8');
+  } catch (e) {
+    logLine(`scheduleDelayedNSISInstall: не записать bat: ${formatErr(e)}`);
+    return false;
+  }
+
+  const comspec = process.env.ComSpec || 'cmd.exe';
+  try {
+    /* start "" /min — отдельный процесс дерева, чтобы выход Electron не убил ожидание */
     const child = spawn(
-      'powershell.exe',
-      ['-NoProfile', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', ps],
-      { detached: true, stdio: 'ignore', windowsHide: true },
+      comspec,
+      ['/c', 'start', '""', '/min', comspec, '/c', batchPath],
+      {
+        detached: true,
+        windowsHide: true,
+        stdio: 'ignore',
+      },
     );
+    child.on('error', (err) => {
+      logLine(`spawn cmd start failed: ${formatErr(err)}`);
+    });
     child.unref();
-    logLine(`scheduled NSIS install (delay ${INSTALL_DELAY_SEC}s): ${installerPath}`);
+    logLine(`scheduled NSIS via ${batchPath} (wait ${INSTALL_DELAY_SEC}s) exe=${installerPath}`);
     return true;
   } catch (e) {
-    logLine(`scheduleDelayedNSISInstall failed: ${formatErr(e)}`);
+    logLine(`scheduleDelayedNSISInstall spawn: ${formatErr(e)}`);
+    try {
+      fs.unlinkSync(batchPath);
+    } catch {
+      /* ignore */
+    }
     return false;
   }
 }
@@ -130,14 +186,12 @@ function setupAutoUpdater(mainWindow) {
 
   autoUpdater.on('update-downloaded', (info) => {
     const v = info && info.version ? info.version : '?';
-    logLine(`event: update-downloaded ${v} — delayed NSIS + app.quit`);
+    logLine(`event: update-downloaded ${v} — delayed NSIS (bat) + app.quit`);
     send({ type: 'downloaded', version: v });
 
-    const helper = autoUpdater.downloadedUpdateHelper;
-    const installerPath = helper && typeof helper.file === 'string' ? helper.file : null;
-
+    const installerPath = resolveInstallerPath(autoUpdater.downloadedUpdateHelper);
     if (!installerPath) {
-      logLine('no installer path on helper, fallback quitAndInstall');
+      logLine(`no installer path helper=${Boolean(autoUpdater.downloadedUpdateHelper)}`);
       try {
         autoUpdater.quitAndInstall(false, true);
       } catch (e) {

@@ -1,8 +1,8 @@
-version: 1.0.6
+version: 1.0.7
 files:
-  - url: FuelAccounting-Setup-1.0.6.exe
-    sha512: tpQ17gUMrTRJh8DonyP0BRVWbR0B4LPifPhabkN+JQ8Q+OhzSkSDBaynNIEJPTwePfQzvm9zrPBAiIOKNV04pg==
-    size: 91353175
-path: FuelAccounting-Setup-1.0.6.exe
-sha512: tpQ17gUMrTRJh8DonyP0BRVWbR0B4LPifPhabkN+JQ8Q+OhzSkSDBaynNIEJPTwePfQzvm9zrPBAiIOKNV04pg==
-releaseDate: '2026-03-26T06:56:59.749Z'
+  - url: FuelAccounting-Setup-1.0.7.exe
+    sha512: mRklyFH8ZfrjQVVP/3KSjM8cwmMuBb3NT0oPbgxIOXHqFYvVZEP+w+RFFfPIVFons4GGkxDGzOv9kYsKpG+zpA==
+    size: 91353429
+path: FuelAccounting-Setup-1.0.7.exe
+sha512: mRklyFH8ZfrjQVVP/3KSjM8cwmMuBb3NT0oPbgxIOXHqFYvVZEP+w+RFFfPIVFons4GGkxDGzOv9kYsKpG+zpA==
+releaseDate: '2026-03-26T07:01:18.512Z'
