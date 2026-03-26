@@ -1,9 +1,24 @@
 /// <reference types="vite/client" />
 
 declare global {
+  type FuelUpdateEvent =
+    | { type: 'checking' }
+    | { type: 'available'; version: string }
+    | { type: 'not-available' }
+    | { type: 'progress'; percent: number }
+    | { type: 'downloaded'; version: string }
+    | { type: 'error'; message: string };
+
   interface Window {
     fuelApi: {
       getAppVersion: () => Promise<string>;
+      getRuntimeInfo: () => Promise<{
+        isPackaged: boolean;
+        platform: string;
+        userData: string;
+        updaterLogFile: string;
+      }>;
+      onUpdateEvent: (callback: (event: FuelUpdateEvent) => void) => () => void;
       getDataRoot: () => Promise<string>;
       loadVehicles: () => Promise<import('./types').Vehicle[]>;
       saveVehicles: (vehicles: import('./types').Vehicle[]) => Promise<boolean>;

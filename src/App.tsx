@@ -9,6 +9,25 @@ import { useTheme } from './theme/ThemeProvider';
 
 type Tab = 'vehicles' | 'day' | 'stats' | 'compare';
 
+function formatUpdateLine(ev: FuelUpdateEvent): string {
+  switch (ev.type) {
+    case 'checking':
+      return 'Обновления: проверка…';
+    case 'available':
+      return `Обновления: доступна v${ev.version}, скачивание…`;
+    case 'not-available':
+      return 'Обновления: у вас последняя версия';
+    case 'progress':
+      return `Обновления: скачано ${Math.round(ev.percent)}%`;
+    case 'downloaded':
+      return 'Обновления: установщик запускается… (окно может закрыться)';
+    case 'error':
+      return `Обновления: ошибка — ${ev.message}`;
+    default:
+      return '';
+  }
+}
+
 function todayKey(): string {
   const d = new Date();
   const y = d.getFullYear();
@@ -28,6 +47,7 @@ export default function App() {
   const [entries, setEntries] = useState<Record<string, DailyEntry>>({});
   const [devHasBackup, setDevHasBackup] = useState(false);
   const [devMockBusy, setDevMockBusy] = useState(false);
+  const [updateLine, setUpdateLine] = useState<string | null>(null);
 
   const hasFuelApi = typeof window !== 'undefined' && Boolean(window.fuelApi);
   const isViteDev = import.meta.env.DEV;
@@ -54,6 +74,16 @@ export default function App() {
     }
     void window.fuelApi.getDataRoot().then(setDataRoot);
     void window.fuelApi.getAppVersion().then(setAppVersion);
+  }, []);
+
+  useEffect(() => {
+    if (!window.fuelApi?.onUpdateEvent) {
+      return;
+    }
+    const off = window.fuelApi.onUpdateEvent((ev) => {
+      setUpdateLine(formatUpdateLine(ev));
+    });
+    return off;
   }, []);
 
   const refreshDevBackupStatus = useCallback(async () => {
@@ -219,7 +249,7 @@ export default function App() {
             </button>
           </div>
         </div>
-        <div className="app-top-left" style={{ marginLeft: 'auto' }}>
+        <div className="app-top-left app-top-trailing">
           <button type="button" className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}>
             {themeLabel}
           </button>
@@ -230,6 +260,15 @@ export default function App() {
           ) : null}
         </div>
       </div>
+
+      {updateLine ? (
+        <p
+          className={`app-update-hint${updateLine.includes('ошибка') ? ' is-error' : ''}`}
+          role="status"
+        >
+          {updateLine}
+        </p>
+      ) : null}
 
       {isViteDev ? (
         <div className="dev-mock-bar" role="region" aria-label="Режим разработки — моковые данные">

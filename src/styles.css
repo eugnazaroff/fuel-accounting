@@ -111,6 +111,27 @@ body {
   flex-shrink: 0;
 }
 
+.app-top-trailing {
+  margin-left: auto;
+}
+
+.app-update-hint {
+  margin: -8px 0 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.app-update-hint.is-error {
+  color: var(--danger);
+  background: var(--danger-muted);
+  border-color: var(--danger);
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;

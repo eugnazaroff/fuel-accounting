@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { setupAutoUpdater } = require('./autoUpdate.cjs');
@@ -196,12 +196,21 @@ function createWindow() {
     },
   });
 
+  win.webContents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL) => {
+    dialog.showErrorBox(
+      'FuelAccounting',
+      `Не удалось загрузить интерфейс (${errorCode}): ${errorDescription}\n${validatedURL}`,
+    );
+  });
+
   if (isDev) {
     win.loadURL('http://127.0.0.1:5173');
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
     win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
+
+  return win;
 }
 
 app.whenReady().then(async () => {
@@ -210,6 +219,13 @@ app.whenReady().then(async () => {
   ipcMain.handle('fuel:getDataRoot', async () => getDataRoot());
 
   ipcMain.handle('fuel:getAppVersion', async () => app.getVersion());
+
+  ipcMain.handle('fuel:getRuntimeInfo', async () => ({
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    userData: app.getPath('userData'),
+    updaterLogFile: path.join(app.getPath('userData'), 'fuel-updater.log'),
+  }));
 
   ipcMain.handle('fuel:loadVehicles', async () => {
     const root = getDataRoot();
@@ -362,15 +378,22 @@ app.whenReady().then(async () => {
     });
   }
 
-  createWindow();
+  const mainWindow = createWindow();
 
-  setupAutoUpdater();
+  setupAutoUpdater(mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
+}).catch((err) => {
+  console.error(err);
+  dialog.showErrorBox(
+    'FuelAccounting — ошибка запуска',
+    err instanceof Error ? err.message : String(err),
+  );
+  app.quit();
 });
 
 app.on('window-all-closed', () => {
