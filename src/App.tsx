@@ -20,7 +20,7 @@ function formatUpdateLine(ev: FuelUpdateEvent): string {
     case 'progress':
       return `Обновления: скачано ${Math.round(ev.percent)}%`;
     case 'downloaded':
-      return 'Обновления: установщик запускается… (окно может закрыться)';
+      return 'Обновления: приложение закроется, установщик откроется через несколько секунд…';
     case 'error':
       return `Обновления: ошибка — ${ev.message}`;
     default:

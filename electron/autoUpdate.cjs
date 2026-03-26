@@ -1,6 +1,7 @@
 const { app } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 const { autoUpdater } = require('electron-updater');
 
 /**
@@ -9,6 +10,9 @@ const { autoUpdater } = require('electron-updater');
  *   https://ВАШ_ЛОГИН.github.io/ИМЯ_РЕПО/updates/
  */
 const HARDCODED_UPDATE_BASE_URL = 'https://eugnazaroff.github.io/fuel-accounting/updates/';
+
+/** Пауза перед запуском NSIS после выхода процесса (сек.), чтобы снять блокировки с .exe. */
+const INSTALL_DELAY_SEC = 8;
 
 function normalizeBaseUrl(url) {
   if (!url || typeof url !== 'string') {
@@ -40,6 +44,29 @@ function formatErr(err) {
 }
 
 /**
+ * Не используем quitAndInstall: он запускает установщик пока процесс Electron ещё жив — файлы
+ * остаются заблокированы (NSIS «не удалось закрыть приложение»). Планируем Setup через PowerShell.
+ * @param {string} installerPath
+ */
+function scheduleDelayedNSISInstall(installerPath) {
+  const fileJson = JSON.stringify(installerPath);
+  const ps = `Start-Sleep -Seconds ${INSTALL_DELAY_SEC}; Start-Process -FilePath ${fileJson} -ArgumentList '--updated','--force-run'`;
+  try {
+    const child = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', ps],
+      { detached: true, stdio: 'ignore', windowsHide: true },
+    );
+    child.unref();
+    logLine(`scheduled NSIS install (delay ${INSTALL_DELAY_SEC}s): ${installerPath}`);
+    return true;
+  } catch (e) {
+    logLine(`scheduleDelayedNSISInstall failed: ${formatErr(e)}`);
+    return false;
+  }
+}
+
+/**
  * @param {import('electron').BrowserWindow | null | undefined} mainWindow
  */
 function setupAutoUpdater(mainWindow) {
@@ -67,7 +94,7 @@ function setupAutoUpdater(mainWindow) {
   }
 
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
 
   autoUpdater.setFeedURL({
     provider: 'generic',
@@ -103,14 +130,40 @@ function setupAutoUpdater(mainWindow) {
 
   autoUpdater.on('update-downloaded', (info) => {
     const v = info && info.version ? info.version : '?';
-    logLine(`event: update-downloaded ${v} — quitAndInstall`);
+    logLine(`event: update-downloaded ${v} — delayed NSIS + app.quit`);
     send({ type: 'downloaded', version: v });
-    try {
-      autoUpdater.quitAndInstall(false, true);
-    } catch (e) {
-      logLine(`quitAndInstall failed: ${formatErr(e)}`);
-      send({ type: 'error', message: 'Не удалось запустить установщик обновления.' });
+
+    const helper = autoUpdater.downloadedUpdateHelper;
+    const installerPath = helper && typeof helper.file === 'string' ? helper.file : null;
+
+    if (!installerPath) {
+      logLine('no installer path on helper, fallback quitAndInstall');
+      try {
+        autoUpdater.quitAndInstall(false, true);
+      } catch (e) {
+        logLine(`quitAndInstall failed: ${formatErr(e)}`);
+        send({ type: 'error', message: 'Не удалось запустить установщик обновления.' });
+      }
+      return;
     }
+
+    if (!scheduleDelayedNSISInstall(installerPath)) {
+      try {
+        autoUpdater.quitAndInstall(false, true);
+      } catch (e) {
+        logLine(`quitAndInstall fallback failed: ${formatErr(e)}`);
+        send({ type: 'error', message: 'Не удалось запустить установщик обновления.' });
+      }
+      return;
+    }
+
+    setImmediate(() => {
+      try {
+        app.quit();
+      } catch (e) {
+        logLine(`app.quit failed: ${formatErr(e)}`);
+      }
+    });
   });
 
   autoUpdater.on('error', (err) => {
