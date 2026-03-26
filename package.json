@@ -1,0 +1,85 @@
+{
+  "name": "fuel-accounting",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "author": "local",
+  "scripts": {
+    "dev": "vite",
+    "dev:app": "wait-on tcp:127.0.0.1:5173 && electron .",
+    "start:desktop": "concurrently -k \"vite\" \"wait-on tcp:127.0.0.1:5173 && electron .\"",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "start": "electron .",
+    "lint": "eslint . --ext ts,tsx --max-warnings 0",
+    "seed:portable": "node electron/scripts/seed-portable-userdata.cjs",
+    "dist:win": "npm run build && electron-builder --win nsis --x64 && node electron/scripts/copy-userdata-to-release.cjs",
+    "dist:win:portable": "npm run build && electron-builder --win portable --x64 && node electron/scripts/copy-userdata-to-release.cjs",
+    "publish:updates-gh-pages": "node electron/scripts/copy-release-to-docs-updates.cjs"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.8.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.local.fuel-accounting",
+    "productName": "FuelAccounting",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "package.json",
+      "dist/**/*",
+      "electron/main.cjs",
+      "electron/preload.cjs",
+      "electron/autoUpdate.cjs",
+      "node_modules/electron-updater/**/*",
+      "node_modules/js-yaml/**/*",
+      "node_modules/lazy-val/**/*",
+      "node_modules/lodash.escaperegexp/**/*",
+      "node_modules/lodash.isequal/**/*",
+      "node_modules/argparse/**/*",
+      "node_modules/debug/**/*",
+      "node_modules/ms/**/*",
+      "node_modules/sax/**/*",
+      "node_modules/graceful-fs/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.exe"
+    }
+  }
+}

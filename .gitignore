@@ -1,0 +1,8 @@
+node_modules/
+dist/
+release/
+tsconfig.tsbuildinfo
+.DS_Store
+*.log
+portable-seed/UserData/vehicle-library/vehicles.json
+portable-seed/UserData/daily-records/*.json
